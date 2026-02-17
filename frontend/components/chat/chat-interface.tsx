@@ -98,7 +98,7 @@ export function ChatInterface() {
                 <div className="space-y-2">
                   <h2 className="text-2xl font-semibold text-foreground">Welcome to Gopx AI</h2>
                   <p className="text-muted-foreground/70 max-w-md">
-                    Start a conversation by typing a message below. I'm here to help!
+                    Start a conversation by typing a message below. I&apos;m here to help!
                   </p>
                 </div>
               </div>
