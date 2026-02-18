@@ -2,8 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
+import https from 'https';
 import { chatRouter } from './routes/chat.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { getAllowedOrigins, normalizeOrigin, isOriginAllowed } from './utils/cors.js';
 
 dotenv.config();
 
@@ -13,23 +15,23 @@ const ENABLE_KEEP_ALIVE = process.env.ENABLE_KEEP_ALIVE !== 'false'; // Default 
 const KEEP_ALIVE_INTERVAL = parseInt(process.env.KEEP_ALIVE_INTERVAL || '600000', 10); // Default 10 minutes (600000ms)
 
 // Middleware
-// Parse CORS origins - support comma-separated list or single URL
-const corsOrigins = process.env.CORS_ORIGIN 
-  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-  : ['http://localhost:3000'];
+// CORS configuration
+const corsOrigins = getAllowedOrigins();
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (corsOrigins.includes(origin)) {
+    if (isOriginAllowed(origin)) {
       callback(null, true);
     } else {
+      console.warn(`CORS blocked origin: ${origin} (normalized: ${normalizeOrigin(origin)})`);
+      console.log(`Allowed origins: ${corsOrigins.join(', ')}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Type']
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -81,7 +83,11 @@ function startKeepAlive() {
 }
 
 function pingSelf(url) {
-  http.get(url, (res) => {
+  // Determine which protocol to use based on the URL
+  const isHttps = url.startsWith('https://');
+  const client = isHttps ? https : http;
+  
+  client.get(url, (res) => {
     const statusCode = res.statusCode;
     if (statusCode === 200) {
       console.log(`✅ Keep-alive ping successful at ${new Date().toISOString()}`);

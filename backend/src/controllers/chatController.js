@@ -1,5 +1,6 @@
 import Groq from 'groq-sdk';
 import { AppError } from '../utils/errors.js';
+import { setCorsHeaders } from '../utils/cors.js';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
@@ -17,6 +18,9 @@ export const chatController = {
         throw new AppError('Messages array is required', 400);
       }
 
+      // Set CORS headers explicitly for streaming responses
+      setCorsHeaders(req, res);
+      
       // Set headers for streaming
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
